@@ -10,6 +10,7 @@ import cv2
 import dlib
 import imutils
 import util.gaze
+import copy
 from imutils import face_utils
 
 from util.eye_prediction import EyePrediction
@@ -36,6 +37,9 @@ nfeatures = checkpoint['nfeatures']
 nlandmarks = checkpoint['nlandmarks']
 eyenet = EyeNet(nstack=nstack, nfeatures=nfeatures, nlandmarks=nlandmarks).to(device)
 eyenet.load_state_dict(checkpoint['model_state_dict'])
+
+textColor = (255, 38, 233)
+
 
 def main():
     current_face = None
@@ -69,7 +73,10 @@ def main():
 
             #draw_landmarks(landmarks, orig_frame)
 
-
+        gaze_left = []
+        gaze_right = []
+        gaze_left_txt = ''
+        gaze_right_txt = ''
         if landmarks is not None:
             eye_samples = segment_eyes(gray, landmarks)
 
@@ -84,21 +91,84 @@ def main():
 
             for ep in [left_eye, right_eye]:
                 for (x, y) in ep.landmarks[16:33]:
+                    # green circle for right
                     color = (0, 255, 0)
+                    # blue circle for left
                     if ep.eye_sample.is_left:
                         color = (255, 0, 0)
                     cv2.circle(orig_frame,
                                (int(round(x)), int(round(y))), 1, color, -1, lineType=cv2.LINE_AA)
-
                 gaze = ep.gaze.copy()
                 if ep.eye_sample.is_left:
                     gaze[1] = -gaze[1]
+                    gaze_left = copy.deepcopy(gaze)
+                else:
+                    gaze_right = copy.deepcopy(gaze)
                 util.gaze.draw_gaze(orig_frame, ep.landmarks[-2], gaze, length=60.0, thickness=2)
-
+        
+        # put gaze indexes on the screen
+        cv2.putText(orig_frame, 'Gaze Green:' + str(gaze_left), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        cv2.putText(orig_frame, 'Gaze Blue:' + str(gaze_right), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        
+        # create a rectangle frame around the window to indicate wether or not user is looking at a safe zone
+        frameColor = gaze_zone(gaze_left, gaze_right)
+        cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
+        # display window
         cv2.imshow("Webcam", orig_frame)
         cv2.waitKey(1)
 
+def gaze_zone(left_pupil, right_pupil):
+    # set x and y coordinates of each pupil
+    left_x, left_y, right_x, right_y = 0, 0, 0, 0
 
+    if (len(left_pupil) >= 2):
+        left_y = left_pupil[0]
+        left_x = left_pupil[1]
+    
+    if (len(right_pupil) >= 2):
+        right_y = right_pupil[0]
+        right_x = right_pupil[1]
+
+    
+    # zone colors in RGB
+    red = (50, 50, 255)
+    yellow = (15, 215, 255)
+    green = (71, 252, 80)
+
+    # margin or error for the green and yellow zone
+    margin = 0.05
+    # margin_ylw = 10
+
+    # ranges of x-coordinate
+    # left pupil (blue)
+    l_x_max = 0.3 # shouldn't be larger - no need to keep track of right eye for x_max
+    # right pupil (green)
+    r_x_min = -0.3 # shouldn't be smaller - no need to keep track of left eye x_min
+
+    # ranges of y-coordinate
+    y_min = 0 # shouldnt be smaller
+    y_max = 0.3 # shouldnt be larger
+
+
+    # if red zone - looking at screen
+    if ((left_x <= l_x_max) and                 #far left of screen
+        (right_x >= r_x_min) and                #far right of screen
+        (left_y >= y_min or right_y >= y_min)   #far top of screen - no need to keep track of bottom of screen because we want to make sure user is looking upwards not down at phone
+        ):
+        return red
+    
+    # if yellow zone - somewhere in between the screen and off
+    elif ((l_x_max < left_x <= (l_x_max + margin)) or                 #far left of screen
+          (r_x_min > right_x >= (r_x_min - margin)) or                #far left of screen
+          ((y_min > left_y >= (y_min - margin)) or 
+           (y_min > right_y >= (y_min - margin))) #far top of screen
+          ):
+        return yellow
+    
+    # off screen and safe
+    else:
+        return green
+        
 def detect_landmarks(face, frame, scale_x=0, scale_y=0):
     (x, y, w, h) = (int(e) for e in face)
     rectangle = dlib.rectangle(x, y, x + w, y + h)
@@ -206,7 +276,6 @@ def run_eyenet(eyes: List[EyeSample], ow=160, oh=96) -> List[EyePrediction]:
             assert landmarks.shape == (34, 2)
             result.append(EyePrediction(eye_sample=eye, landmarks=landmarks, gaze=gaze))
     return result
-
-
+  
 if __name__ == '__main__':
     main()
