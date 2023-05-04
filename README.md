@@ -1,12 +1,26 @@
 # Notes about project
 
-### About the project
+## About the project
 
-The goal of this project is to detect when a user is looking at their screen or not to help users educe eye strain by implementing the 20:20:20 ruls. An existing[ gaze estimation trained model](https://github.com/david-wb/gaze-estimation) is used to detect where the user's eye gaze direction is.
+### Summary
 
-The 20:20:20 rule. The rule states that every 20 minutes, people should look away from their screens for at least 20 seconds, and look 20 feet away. Many applications that help apply this already exist, in which they lock or blackout the user's screen every 20 minutes for 20 seconds. Personally I have tried using these apps, but uncontiosuly I tend to continye looking at my screen even though it's blackened during those 20 seconds. Or I would look down at another device such as my phone. Therefore, I decided to develop this project which would ensure that the user is looking upwards for the duration of 20 seconds.
+The goal of this project is to detect when a user is looking at their screen or not to help users reduce eye strain by implementing the 20:20:20 rule.
 
-### Running the project on a local Mac machine
+When the user looks at their screen the screen frame will be red, when they aren't it will be green. If their looking around the borders of the screen it may be yellow.
+
+### Future implications
+
+- At the moment the values of the screen border are hard coded to match my personal laptop. This will be updated to be more dynamic and be set based on the users screen and webcam.
+- Create a fully functioning app that has a timer and turns on the camera to check if the user is looking at the screen or not for 20 seconds.
+- Test the app across 
+
+### Existing products
+
+An existing[ gaze estimation trained model](https://github.com/david-wb/gaze-estimation) is used to detect where the user's eye gaze direction is.
+
+This project was made to implement the 20:20:20 rule. The rule states that every 20 minutes, people should look away from their screens for at least 20 seconds, and look 20 feet away. Many applications that help apply this already exist, in which they lock or blackout the user's screen every 20 minutes for 20 seconds. Personally I have tried using these apps, but uncontiosuly I tend to continye looking at my screen even though it's blackened during those 20 seconds. Or I would look down at another device such as my phone. Therefore, I decided to develop this project which would ensure that the user is looking upwards for the duration of 20 seconds.
+
+## Running the project on a local Mac machine
 
 1. Clone the repo `git clone https://github.com/david-wb/gaze-estimation`
 2. Make sure `conda` and `wget` are installed.
