@@ -45,21 +45,23 @@ eyenet.load_state_dict(checkpoint['model_state_dict'])
 
 
 textColor = (255, 38, 233)
+webcam = cv2.VideoCapture(0)
+webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
+webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+webcam.set(cv2.CAP_PROP_FPS, 60)
+
+# Create a full screen window with the full screen button enabled
+cv2.namedWindow('Webcam', cv2.WINDOW_FULLSCREEN)
+
+# detect when user clicks on window, set it to focus mode
+def on_mouse(event, x, y, flags, param):
+    print("here")
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print("left button clicked")
+        # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 def main():
-
-    webcam = cv2.VideoCapture(0)
-    # webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-    # webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    # webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-    # webcam.set(cv2.CAP_PROP_FPS, 60)
-
-    # Create a full screen window with the full screen button enabled
-    cv2.namedWindow('Webcam', cv2.WINDOW_FULLSCREEN)
-    # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
-    # Wait for one second to allow the full screen button to take effect
-    cv2.waitKey(1000) 
 
     gaze_set = False
     current_face = None
@@ -143,7 +145,9 @@ def main():
         cv2.circle(orig_frame, (50,50), 50, frameColor, -1)
 
         # display window
-        cv2.imshow("Webcam", orig_frame)   
+        cv2.imshow("Webcam", orig_frame)  
+
+        cv2.setMouseCallback('Webcam', on_mouse) 
 
         # Set the window property to be always on top
         # Set a mouse callback function to handle mouse events
@@ -151,15 +155,15 @@ def main():
 
         # Check if the user pressed the 'space' key (ASCII code 32)
         key = cv2.waitKey(1)
-        print("key", key)
+        # print("key", key)
         # cv2.putText(orig_frame, 'key:' + str(key), (50, 600), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
         
         if key == ord('q'):
             break
         elif key == 32:
             print('space pressed')
-        else: 
-            print('pressed: ', key)
+        # else: 
+            # print('pressed: ', key)
         #     cv2.putText(orig_frame, 'space button pressed', (50, 700), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
     # Release the video capture device and close the OpenCV window
     webcam.release()
