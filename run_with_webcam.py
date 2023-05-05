@@ -8,13 +8,24 @@ import os
 import numpy as np
 import cv2
 import dlib
-import imutils
 import util.gaze
 import copy
+import math
 from imutils import face_utils
+from PIL import ImageGrab
 
 from util.eye_prediction import EyePrediction
 from util.eye_sample import EyeSample
+
+print("moniters:")
+screen = ImageGrab.grab().size
+print (screen)
+screen_width = screen[0]
+screen_height = screen[1]
+print('screen_width', screen_width)
+print('screen_height', screen_height)
+
+# print("AppKit", NSScreen.mainScreen().frame())
 
 torch.backends.cudnn.enabled = True
 
@@ -113,7 +124,29 @@ def main():
         # create a rectangle frame around the window to indicate wether or not user is looking at a safe zone
         frameColor = gaze_zone(gaze_left, gaze_right)
         cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
+        
         # display window
+        # get the size of the screen
+        # screen_id = 2
+        # screen = screeninfo.get_monitors()[screen_id]
+        # width, height = screen.width, screen.height
+        ## get Screen Size
+        # user32 = ctypes.windll.user32
+        # screen_width, screen_height = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        # print("screen_width", screen_width)
+
+        # window_dim = (500, 200)
+        orig_frame = cv2.resize(orig_frame, (screen_width, screen_height), interpolation = cv2.INTER_AREA)
+        orig_frame = cv2.resize(orig_frame, (math.floor(screen_width/2), math.floor(screen_height/2) - 50), interpolation = cv2.INTER_AREA)
+
+        # cv2.setWindowProperty(orig_frame, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+        # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL, cv2.WINDOW_FREERATIO)
+        # cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
+
+        # cv2.setWindowProperty("Image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.setWindowProperty("Webcam",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+
         cv2.imshow("Webcam", orig_frame)
         cv2.waitKey(1)
 
