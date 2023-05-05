@@ -13,19 +13,16 @@ import copy
 import math
 from imutils import face_utils
 from PIL import ImageGrab
+# import keyboard
+import sys,tty
 
 from util.eye_prediction import EyePrediction
 from util.eye_sample import EyeSample
-
-print("moniters:")
+    
 screen = ImageGrab.grab().size
-print (screen)
-screen_width = screen[0]
-screen_height = screen[1]
-print('screen_width', screen_width)
-print('screen_height', screen_height)
-
-# print("AppKit", NSScreen.mainScreen().frame())
+screen_width = math.floor(screen[0]/2)
+screen_height = math.floor(screen[1]/2)
+circle_coordinates = [(50, 50), (math.floor(screen_width/2) - 50, 50), (screen_width - 50, 50)]
 
 torch.backends.cudnn.enabled = True
 
@@ -51,13 +48,14 @@ eyenet.load_state_dict(checkpoint['model_state_dict'])
 
 textColor = (255, 38, 233)
 
-
 def main():
+    gaze_set = False
     current_face = None
     landmarks = None
     alpha = 0.95
     left_eye = None
     right_eye = None
+    white = (255, 255, 255)
 
     while True:
         _, frame_bgr = webcam.read()
@@ -88,6 +86,7 @@ def main():
         gaze_right = []
         gaze_left_txt = ''
         gaze_right_txt = ''
+
         if landmarks is not None:
             eye_samples = segment_eyes(gray, landmarks)
 
@@ -116,7 +115,8 @@ def main():
                 else:
                     gaze_right = copy.deepcopy(gaze)
                 util.gaze.draw_gaze(orig_frame, ep.landmarks[-2], gaze, length=60.0, thickness=2)
-        
+            
+                
         # put gaze indexes on the screen
         cv2.putText(orig_frame, 'Gaze Green:' + str(gaze_left), (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
         cv2.putText(orig_frame, 'Gaze Blue:' + str(gaze_right), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
@@ -125,30 +125,37 @@ def main():
         frameColor = gaze_zone(gaze_left, gaze_right)
         cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
         
-        # display window
-        # get the size of the screen
-        # screen_id = 2
-        # screen = screeninfo.get_monitors()[screen_id]
-        # width, height = screen.width, screen.height
-        ## get Screen Size
-        # user32 = ctypes.windll.user32
-        # screen_width, screen_height = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-        # print("screen_width", screen_width)
+        # display window in the screen size
+        orig_frame = cv2.resize(orig_frame, (screen_width, screen_height - 50), interpolation = cv2.INTER_AREA)
+        
 
-        # window_dim = (500, 200)
-        orig_frame = cv2.resize(orig_frame, (screen_width, screen_height), interpolation = cv2.INTER_AREA)
-        orig_frame = cv2.resize(orig_frame, (math.floor(screen_width/2), math.floor(screen_height/2) - 50), interpolation = cv2.INTER_AREA)
+        cv2.putText(orig_frame, 'Look at the white circle and press on the "space" button for 3 seconds', (50, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        cv2.imshow("Webcam", orig_frame)   
+        key = cv2.waitKey(1)
+        print("key", key)
+        # Check if the user pressed the 'space' key (ASCII code 32)
+        # cv2.putText(orig_frame, 'key:' + str(key), (50, 600), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        # if key == 32:
+        #     print('space pressed')
+        #     cv2.putText(orig_frame, 'space button pressed', (50, 700), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        #     # break
+    
+    # Release the video capture device and close the OpenCV window
+    webcam.release()
+    cv2.destroyAllWindows()
 
-        # cv2.setWindowProperty(orig_frame, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-        # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL, cv2.WINDOW_FREERATIO)
-        # cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
-
-        # cv2.setWindowProperty("Image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        # cv2.setWindowProperty("Webcam",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
-
-        cv2.imshow("Webcam", orig_frame)
-        cv2.waitKey(1)
+        # if (gaze_set == False): 
+        #     print("entered gaze set")
+        #     # tty.setcbreak(sys.stdin)     
+        #     for cc in circle_coordinates:
+        #         cv2.circle(orig_frame, cc, 50, white, -1)
+        #         # read when a user hits the space key
+        #         key = ord(sys.stdin.read(1))  # key captures the key-code 
+        #         if key == 32:
+        #             print("you pressed space")
+        #             cv2.putText(orig_frame, 'Key pressed', (800, 800), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        #             # register what the persons gaze is
+        #     gaze_set = True  
 
 def gaze_zone(left_pupil, right_pupil):
     # set x and y coordinates of each pupil
@@ -170,7 +177,6 @@ def gaze_zone(left_pupil, right_pupil):
 
     # margin or error for the green and yellow zone
     margin = 0.05
-    # margin_ylw = 10
 
     # ranges of x-coordinate
     # left pupil (blue)
