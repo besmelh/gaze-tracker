@@ -19,21 +19,17 @@ import sys,tty
 from util.eye_prediction import EyePrediction
 from util.eye_sample import EyeSample
     
-screen = ImageGrab.grab().size
-screen_width = math.floor(screen[0]/2)
-screen_height = math.floor(screen[1]/2)
-circle_coordinates = [(50, 50), (math.floor(screen_width/2) - 50, 50), (screen_width - 50, 50)]
+# screen = ImageGrab.grab().size
+# screen_width = math.floor(screen[0]/2)
+# screen_height = math.floor(screen[1]/2)
+# circle_coordinates = [(50, 50), (math.floor(screen_width/2) - 50, 50), (screen_width - 50, 50)]
+circle_coordinates = [(50, 50), (math.floor(2000/2) - 50, 50), (2000 - 50, 50)]
 
 torch.backends.cudnn.enabled = True
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-webcam = cv2.VideoCapture(0)
-webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-webcam.set(cv2.CAP_PROP_FPS, 60)
 
 dirname = os.path.dirname(__file__)
 face_cascade = cv2.CascadeClassifier(os.path.join(dirname, 'lbpcascade_frontalface_improved.xml'))
@@ -46,9 +42,25 @@ nlandmarks = checkpoint['nlandmarks']
 eyenet = EyeNet(nstack=nstack, nfeatures=nfeatures, nlandmarks=nlandmarks).to(device)
 eyenet.load_state_dict(checkpoint['model_state_dict'])
 
+
+
 textColor = (255, 38, 233)
 
 def main():
+
+    webcam = cv2.VideoCapture(0)
+    # webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
+    # webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    # webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+    # webcam.set(cv2.CAP_PROP_FPS, 60)
+
+    # Create a full screen window with the full screen button enabled
+    cv2.namedWindow('Webcam', cv2.WINDOW_FULLSCREEN)
+    # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    # Wait for one second to allow the full screen button to take effect
+    cv2.waitKey(1000) 
+
     gaze_set = False
     current_face = None
     landmarks = None
@@ -72,15 +84,12 @@ def main():
                 current_face = next_face
 
         if current_face is not None:
-            #draw_cascade_face(current_face, orig_frame)
             next_landmarks = detect_landmarks(current_face, gray)
 
             if landmarks is not None:
                 landmarks = next_landmarks * alpha + (1 - alpha) * landmarks
             else:
                 landmarks = next_landmarks
-
-            #draw_landmarks(landmarks, orig_frame)
 
         gaze_left = []
         gaze_right = []
@@ -126,20 +135,32 @@ def main():
         cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
         
         # display window in the screen size
-        orig_frame = cv2.resize(orig_frame, (screen_width, screen_height - 50), interpolation = cv2.INTER_AREA)
+        # orig_frame = cv2.resize(orig_frame, (screen_width, screen_height - 50), interpolation = cv2.INTER_AREA)
         
 
+        # add interface to detect the users eye gaze zone when looking at their screen
         cv2.putText(orig_frame, 'Look at the white circle and press on the "space" button for 3 seconds', (50, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        cv2.circle(orig_frame, (50,50), 50, frameColor, -1)
+
+        # display window
         cv2.imshow("Webcam", orig_frame)   
+
+        # Set the window property to be always on top
+        # Set a mouse callback function to handle mouse events
+        # cv2.setMouseCallback('frame', mouse_callback)
+
+        # Check if the user pressed the 'space' key (ASCII code 32)
         key = cv2.waitKey(1)
         print("key", key)
-        # Check if the user pressed the 'space' key (ASCII code 32)
         # cv2.putText(orig_frame, 'key:' + str(key), (50, 600), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
-        # if key == 32:
-        #     print('space pressed')
+        
+        if key == ord('q'):
+            break
+        elif key == 32:
+            print('space pressed')
+        else: 
+            print('pressed: ', key)
         #     cv2.putText(orig_frame, 'space button pressed', (50, 700), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
-        #     # break
-    
     # Release the video capture device and close the OpenCV window
     webcam.release()
     cv2.destroyAllWindows()
@@ -157,6 +178,15 @@ def main():
         #             # register what the persons gaze is
         #     gaze_set = True  
 
+
+
+# ***********************************************
+# ***********************************************
+# New created functions
+# ***********************************************
+# ***********************************************
+
+# determine the eye zone (red, yellow, green) based on the eye gaze directions
 def gaze_zone(left_pupil, right_pupil):
     # set x and y coordinates of each pupil
     left_x, left_y, right_x, right_y = 0, 0, 0, 0
@@ -208,6 +238,16 @@ def gaze_zone(left_pupil, right_pupil):
     else:
         return green
         
+
+
+
+
+# ***********************************************
+# ***********************************************
+# Previously existing functions
+# ***********************************************
+# ***********************************************
+
 def detect_landmarks(face, frame, scale_x=0, scale_y=0):
     (x, y, w, h) = (int(e) for e in face)
     rectangle = dlib.rectangle(x, y, x + w, y + h)
@@ -269,9 +309,9 @@ def segment_eyes(frame, landmarks, ow=160, oh=96):
 
         if is_left:
             eye_image = np.fliplr(eye_image)
-            cv2.imshow('left eye image', eye_image)
-        else:
-            cv2.imshow('right eye image', eye_image)
+            # cv2.imshow('left eye image', eye_image)
+        # else:
+        #     cv2.imshow('right eye image', eye_image)
         eyes.append(EyeSample(orig_img=frame.copy(),
                               img=eye_image,
                               transform_inv=inv_transform_mat,
