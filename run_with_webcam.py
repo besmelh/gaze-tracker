@@ -157,7 +157,7 @@ def main():
 
         # display window
         cv2.imshow("Webcam", orig_frame)  
-
+        # cv2.setWindowProperty("Webcam", cv2.WND_PROP_TOPMOST, 1)
         # cv2.setMouseCallback("Webcam", key_callback)
 
         # check if any keys were pressed
@@ -222,7 +222,7 @@ def main():
 
 
 def draw_circle(img, circle):
-    print("draw_circle:", circle)
+    # print("draw_circle:", circle)
     cv2.circle(img, circle, rad, (0, 255, 0), -1)
     cv2.putText(img, str(circles.index(circle)), (circle[0]-5, circle[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
