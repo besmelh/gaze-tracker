@@ -122,7 +122,8 @@ screen_height = math.floor(screen[1]/2)
             
 #         cv2.imshow("image", img)
 
-circles = [(50, 50), (100, 50), (150, 50), (200, 50)]
+rad = 50
+circles = [(rad, rad), (screen_width - rad, rad), (rad, screen_height - rad*2), (screen_width - rad, screen_height - rad*2)]
 current_circle = 0
 
 def draw_circle(img, circle):
@@ -130,15 +131,8 @@ def draw_circle(img, circle):
     print("circle:", circle)
     print("current_circle:", current_circle)
     print("circles:", circles)
-    cv2.circle(img, circle, 20, (0, 255, 0), -1)
+    cv2.circle(img, circle, rad, (0, 255, 0), -1)
     cv2.putText(img, str(circles.index(circle)), (circle[0]-5, circle[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
-def delete_circle(circle):
-    print("delete_circle")
-    print("circle:", circle)
-    print("current_circle:", current_circle)
-    print("circles:", circles)
-    circles.remove(circle)
 
 def key_callback(event, x, y, flags, param):
     global current_circle, circles
@@ -190,6 +184,7 @@ def main():
     left_eye = None
     right_eye = None
     white = (255, 255, 255)
+    black = (0, 0, 0)
 
     while True:
         _, frame_bgr = webcam.read()
@@ -253,12 +248,15 @@ def main():
         cv2.putText(orig_frame, 'Gaze Blue:' + str(gaze_right), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
         
         # create a rectangle frame around the window to indicate wether or not user is looking at a safe zone
-        frameColor = gaze_zone(gaze_left, gaze_right)
+        frameColor = black
+        if current_circle >= len(circles):
+            frameColor = gaze_zone(gaze_left, gaze_right)
         cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
         
         
         # add interface to detect the users eye gaze zone when looking at their screen
-        cv2.putText(orig_frame, 'Press "space" to begin', (50, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        if current_circle < len(circles):
+            cv2.putText(orig_frame, 'Look at the green circle and press SPACE.', (math.floor(webcam_width/4)-100, math.floor(webcam_height/2)), cv2.FONT_HERSHEY_SIMPLEX, 1, black, 2, cv2.LINE_AA)
         # cv2.circle(orig_frame, (50,50), 50, frameColor, -1)
 
         # cv2.circle(orig_frame, (100, 100), 100, (255, 0, 0), -1)
