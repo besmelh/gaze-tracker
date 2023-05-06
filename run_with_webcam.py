@@ -19,12 +19,6 @@ import sys,tty
 from util.eye_prediction import EyePrediction
 from util.eye_sample import EyeSample
     
-# screen = ImageGrab.grab().size
-# screen_width = math.floor(screen[0]/2)
-# screen_height = math.floor(screen[1]/2)
-# circle_coordinates = [(50, 50), (math.floor(screen_width/2) - 50, 50), (screen_width - 50, 50)]
-circle_coordinates = [(50, 50), (math.floor(2000/2) - 50, 50), (2000 - 50, 50)]
-
 torch.backends.cudnn.enabled = True
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,25 +37,151 @@ eyenet = EyeNet(nstack=nstack, nfeatures=nfeatures, nlandmarks=nlandmarks).to(de
 eyenet.load_state_dict(checkpoint['model_state_dict'])
 
 
-
+webcam_width = 960
+webcam_height = 480
 textColor = (255, 38, 233)
 webcam = cv2.VideoCapture(0)
-webcam.set(cv2.CAP_PROP_FRAME_WIDTH, 960)
-webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+webcam.set(cv2.CAP_PROP_FRAME_WIDTH, webcam_width)
+webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, webcam_height)
 webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 webcam.set(cv2.CAP_PROP_FPS, 60)
 
-# Create a full screen window with the full screen button enabled
-cv2.namedWindow('Webcam', cv2.WINDOW_FULLSCREEN)
+# get screen size so the window can be full screened 
+screen = ImageGrab.grab().size
+screen_width = math.floor(screen[0]/2)
+screen_height = math.floor(screen[1]/2)
+# rad = 50
+# circles = [
+#     (rad, rad, rad, 'Circle 1'),
+#     (math.floor(webcam_width/2) - rad, rad, rad, 'Circle 2'),
+#     (rad, webcam_height - rad, rad, 'Circle 3'),
+#     (math.floor(webcam_width/2) - rad, webcam_height - rad, rad, 'Circle 4')
+# ]
+
+# circles = [(50, 50, 30), (100, 50, 30), (100, 100, 30), (50, 100, 30)]  # List to hold the coordinates of the circles
+# next_circle = 0  # Index of the circle to add or delete next
+
+# def mouse_click(event, x, y, flags, param):
+#     global next_circle
+
+#     if event == cv2.EVENT_LBUTTONDOWN:
+#         if next_circle < len(circles):
+#             if ((x - circles[next_circle][0])**2 + (y - circles[next_circle][1])**2) < circles[next_circle][2]**2:  # Check if the click is inside the circle
+#                 circles.pop(next_circle)  # Remove the clicked circle from the list
+#             else:
+#                 next_circle += 1  # Move to the next circle to add or delete
+
 
 # detect when user clicks on window, set it to focus mode
-def on_mouse(event, x, y, flags, param):
-    print("here")
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print("left button clicked")
-        # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+# def on_mouse(event, x, y, flags, param):
+#     print("here")
+#     if event == cv2.EVENT_LBUTTONDOWN:
+#         print("left button clicked")
+#         # cv2.setWindowProperty('Webcam', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+# # detect when user clicks circle
+# def on_mouse(event, x, y, flags, param):
+#     print("on_mouse_circle")
+#     if event == cv2.EVENT_LBUTTONDOWN:
+#         print("on_mouse_circle: click detected")
+#         if (x - 100)**2 + (y - 100)**2 <= 100**2:
+#             print("Circle clicked!")
+
+# detect when user clicks circle
+# def on_mouse(event, x, y, flags, param):
+#     print("here")
+#     if event == cv2.EVENT_LBUTTONDOWN:
+#         print("left button clicked")
+#         for circle in circles:
+#             center_x, center_y, radius, label = circle
+#             if (x - center_x)**2 + (y - center_y)**2 <= radius**2:
+#                 print(label + ' clicked!')
+
+# circle_coords = [(50, 50), (100, 50), (100, 100), (50, 100)]
+# radius = 20
+# color = (0, 255, 0)
+# thickness = 2
+# circles = []
+# current_circle = None
+
+# def key_callback(event, x, y, flags, params):
+#     global current_circle, circles
+    
+#     # If space bar is pressed
+#     if event == cv2.EVENT_KEYDOWN and event == ord(' '):
+#         if current_circle is not None:
+#             # Delete the current circle
+#             circles.remove(current_circle)
+#             current_circle = None
+            
+#         # Add the next circle
+#         if len(circles) < len(circle_coords):
+#             next_circle = circles[len(circles)]
+#             circles.append(cv2.circle(img, next_circle, radius, color, thickness))
+#             current_circle = circles[-1]
+            
+#         cv2.imshow("image", img)
+
+circles = [(50, 50), (100, 50), (150, 50), (200, 50)]
+current_circle = 0
+
+def draw_circle(img, circle):
+    print("draw_circle")
+    print("circle:", circle)
+    print("current_circle:", current_circle)
+    print("circles:", circles)
+    cv2.circle(img, circle, 20, (0, 255, 0), -1)
+    cv2.putText(img, str(circles.index(circle)), (circle[0]-5, circle[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+def delete_circle(circle):
+    print("delete_circle")
+    print("circle:", circle)
+    print("current_circle:", current_circle)
+    print("circles:", circles)
+    circles.remove(circle)
+
+def key_callback(event, x, y, flags, param):
+    global current_circle, circles
+    
+    if event == cv2.EVENT_LBUTTONUP:
+        for circle in circles:
+            if np.sqrt((circle[0]-x)**2 + (circle[1]-y)**2) < 20:
+                print("Circle clicked:", circles.index(circle))
+                # delete_circle(circle)
+                break
+
+    elif event == cv2.EVENT_FLAG_ALTKEY:
+        cv2.destroyAllWindows()
+
+    elif event == cv2.EVENT_FLAG_CTRLKEY:
+        cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    elif event == cv2.EVENT_FLAG_SHIFTKEY:
+        if current_circle < len(circles):
+            current_circle += 1
+
+    elif event == cv2.EVENT_FLAG_ALTKEY + cv2.EVENT_FLAG_CTRLKEY:
+        cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    elif event == cv2.EVENT_FLAG_ALTKEY + cv2.EVENT_FLAG_SHIFTKEY:
+        # delete_circle(circles[current_circle])
+        if current_circle < len(circles):
+            current_circle += 1
 
 def main():
+    global current_circle, circles
+    calibrationComplete = False
+    # next_circle = 0
+    # Create a full screen window with the full screen button enabled
+    # cv2.namedWindow('Webcam', cv2.WINDOW_FULLSCREEN)
+
+    # cv2.setMouseCallback('Webcam', mouse_click) 
+    cv2.namedWindow("Webcam")
+    cv2.setMouseCallback("Webcam", key_callback)
+    cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
 
     gaze_set = False
     current_face = None
@@ -136,18 +256,44 @@ def main():
         frameColor = gaze_zone(gaze_left, gaze_right)
         cv2.rectangle(orig_frame, (5,5), (1275, 715), frameColor, 5)
         
-        # display window in the screen size
-        # orig_frame = cv2.resize(orig_frame, (screen_width, screen_height - 50), interpolation = cv2.INTER_AREA)
         
-
         # add interface to detect the users eye gaze zone when looking at their screen
-        cv2.putText(orig_frame, 'Look at the white circle and press on the "space" button for 3 seconds', (50, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
-        cv2.circle(orig_frame, (50,50), 50, frameColor, -1)
+        cv2.putText(orig_frame, 'Press "space" to begin', (50, 500), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
+        # cv2.circle(orig_frame, (50,50), 50, frameColor, -1)
+
+        # cv2.circle(orig_frame, (100, 100), 100, (255, 0, 0), -1)
+        # cv2.putText(orig_frame, 'Click me!', (50, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        # for circle in circles:
+        #     center_x, center_y, radius, label = circle
+        #     cv2.circle(orig_frame, (center_x, center_y), radius, (255, 0, 0), -1)
+        #     cv2.putText(orig_frame, label, (center_x , center_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+
+        # draw circle
+        # for i in range(next_circle):
+        #     cv2.circle(orig_frame, (circles[i][0], circles[i][1]), circles[i][2], (0, 255, 0), -1)  # Draw circles on the image
+
+        # display window in the screen size
+        orig_frame = cv2.resize(orig_frame, (screen_width, screen_height - 50), interpolation = cv2.INTER_AREA)
+        
+        if current_circle < len(circles):
+            draw_circle(orig_frame, circles[current_circle])
 
         # display window
         cv2.imshow("Webcam", orig_frame)  
 
-        cv2.setMouseCallback('Webcam', on_mouse) 
+        cv2.setMouseCallback("Webcam", key_callback)
+
+        key = cv2.waitKey(1)
+
+        if key & 0xFF == ord(' '):
+            # delete_circle(circles[current_circle])
+            if current_circle < len(circles):
+                current_circle += 1
+        
+        if key & 0xFF == ord('q'):
+            break
+        # cv2.setMouseCallback('Webcam', on_mouse) 
 
         # Set the window property to be always on top
         # Set a mouse callback function to handle mouse events
@@ -158,10 +304,18 @@ def main():
         # print("key", key)
         # cv2.putText(orig_frame, 'key:' + str(key), (50, 600), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
         
-        if key == ord('q'):
-            break
-        elif key == 32:
-            print('space pressed')
+        # if key == ord('q'):
+        #     break
+        # elif key == 32:
+        #     if next_circle < len(circles):
+        #         next_circle += 1  # Move to the next circle to add or delete
+        # elif key == ord('d'):
+        #     if next_circle > 0:
+        #         next_circle -= 1  # Move to the previous circle to add or delete
+        #         circles.pop(next_circle)  # Remove the current circle from the list
+
+        # elif key == 32:
+        #     print('space pressed')
         # else: 
             # print('pressed: ', key)
         #     cv2.putText(orig_frame, 'space button pressed', (50, 700), cv2.FONT_HERSHEY_SIMPLEX, 1, textColor, 2, cv2.LINE_AA)
